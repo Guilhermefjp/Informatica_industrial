@@ -41,22 +41,25 @@ class Servidor():
             try:
                 tamanho_da_imagem_codificado = con.recv(1024)
                 tam = int.from_bytes(tamanho_da_imagem_codificado, 'big')
-                for i in range(round(tam/1024)):
-                    img_bytes += con.recv(1024)
+                img_bytes_total = b''
+                for i in range(tam//1024):
+                    img_bytes_total += con.recv(1024)
+                if (tam % 1024) > 0:
+                     img_bytes_total += con.recv(tam%1024)
                 
                 img = cv2.imdecode(np.frombuffer(img_bytes_total, np.uint8), cv2.IMREAD_COLOR)
 
-                img_process = process(img)
+                img_process = self.process(img)
 
-                _, img_process = cv2.imencode('.jpg', img) 
+                _, img_process = cv2.imencode('.jpg', img_process) 
                 img_process = bytes(img_process)
                 tamanho_da_imagem_codificado = len(img_process).to_bytes(4, 'big') 
                 con.send(tamanho_da_imagem_codificado)
-                con.sendall(bytes(str(img_process)))
+                con.sendall(img_process)
                 
             except Exception as e:
                 print("Erro nos dados recebidos pelo cliente ",
-                        client, ": ", e.args)
+                        cliente, ": ", e.args)
                 con.send(bytes("Erro", 'ascii'))
                 return            
 
